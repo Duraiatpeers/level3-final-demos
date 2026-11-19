@@ -1,0 +1,8 @@
+What is the maximum operating pressure of the PX-100?|10 bar
+How often does the PX-200 need preventive maintenance?|3 months
+What is the fluid temperature range of the PX-200?|45
+How many bar can the PX-100 handle?|10 bar
+max flow rate px 200??|80
+Lubricant replacement interval for the PX-100?|12 months
+Which pump allows 15 bar, the PX-100 or the PX-200?|PX-200
+Up to what pressure may I run a PX-100?|10 bar

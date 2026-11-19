@@ -1,0 +1,38 @@
+# ----------------------------------------------------------------------
+# Hello World 1: the smallest Promptfoo test (no app, no Azure key needed)
+# ----------------------------------------------------------------------
+# Purpose: prove that Promptfoo is installed and working, before you try the real PX tests.
+# It uses the built-in "echo" provider, which simply sends the prompt back as the answer.
+# So the test passes or fails without calling any model. It shows the three parts of every Promptfoo file:
+#   providers = who answers      prompts = what we ask      tests = what we check
+#
+# Install (once):  open PowerShell in this folder, then:   npm.cmd install promptfoo      (needs Node.js 22.22 or newer)
+# Before you run:  nothing. No app, no environment variables.
+# Run:     npx.cmd promptfoo eval -c hello_promptfoo.yaml --no-cache
+# View:    npx.cmd promptfoo view      (opens a table in the browser; press Ctrl+C in the window to stop it)
+# Expect:  2 tests, 2 passed (both rows green in the table).
+# Try this: change "Hello" in the first assertion to "Goodbye" and run again. The test now fails.
+# ----------------------------------------------------------------------
+
+description: Hello World, the smallest Promptfoo test
+
+# Who answers. "echo" returns the prompt text as the answer (no model call).
+providers:
+  - echo
+
+# What we ask. {{name}} is filled in from each test below.
+prompts:
+  - "Hello {{name}}, welcome to the PX Service Assistant."
+
+# What we check.
+tests:
+  - vars:
+      name: Durai
+    assert:
+      - type: icontains          # the answer must contain this text (ignores upper/lower case)
+        value: Hello Durai
+  - vars:
+      name: Priya
+    assert:
+      - type: not-icontains      # the answer must NOT contain this text
+        value: Goodbye

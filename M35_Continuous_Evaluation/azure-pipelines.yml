@@ -1,0 +1,82 @@
+# ----------------------------------------------------------------------
+# M3.5: Azure DevOps pipeline that evaluates the app and acts as a quality gate
+# ----------------------------------------------------------------------
+# Do not run this on your computer. It runs in Azure DevOps.
+# Setup in Azure DevOps (once):
+#   1. Put this repository in Azure Repos with the folders: programs, promptfoo and this file at the top.
+#   2. Pipelines > New pipeline > Azure Repos Git > your repo > Existing Azure Pipelines YAML file > azure-pipelines.yml.
+#   3. Pipelines > Library > Variable group named px-eval-secrets with PX_URL (the address of the running app) and PX_KEY (secret).
+#   4. Allow the pipeline to use the variable group when asked.
+# Make the gate blocking (this is what stops a merge):
+#   Repos > Branches > ... next to main > Branch policies > Build validation > Add build policy > pick this pipeline > Policy requirement: Required.
+# Note: for Azure Repos the 'pr:' trigger block is not used. The branch policy queues the build for each pull request.
+# Steps below: quality gate on pass rate, gate against baseline, what changed, Promptfoo checks, publish results.
+# ----------------------------------------------------------------------
+
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: px-eval-secrets
+  - name: PROMPTFOO_DISABLE_TELEMETRY
+    value: "1"
+
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "3.12"
+
+  - task: NodeTool@0
+    inputs:
+      versionSpec: "24.x"
+
+  - script: pip install requests
+    displayName: Install Python packages
+
+  - script: python 01_gate_fixed_threshold.py
+    workingDirectory: programs
+    displayName: Quality gate on pass rate
+    env:
+      PX_URL: $(PX_URL)
+      PX_KEY: $(PX_KEY)
+
+  - script: python 03_gate_vs_baseline.py
+    workingDirectory: programs
+    displayName: Quality gate against baseline
+    env:
+      PX_URL: $(PX_URL)
+      PX_KEY: $(PX_KEY)
+
+  - script: python 05_what_changed.py
+    workingDirectory: programs
+    displayName: Check what changed
+    env:
+      PX_URL: $(PX_URL)
+      PX_KEY: $(PX_KEY)
+
+  - script: |
+      npm install promptfoo
+      npx promptfoo eval -c promptfooconfig_ci.yaml --no-cache -o results.junit.xml
+    workingDirectory: promptfoo
+    displayName: Promptfoo checks
+    env:
+      PX_URL: $(PX_URL)
+      PX_KEY: $(PX_KEY)
+
+  - task: PublishTestResults@2
+    condition: always()
+    inputs:
+      testResultsFormat: JUnit
+      testResultsFiles: promptfoo/results.junit.xml
+      testRunTitle: PX Service Assistant evaluation
+
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: promptfoo/results.junit.xml
+      ArtifactName: eval-results
